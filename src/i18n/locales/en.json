@@ -2699,7 +2699,9 @@
     "command": "Command",
     "payload": "Payload",
     "save_description": "Save description",
-    "update_description": "Update description"
+    "update_description": "Update description",
+    "source_route": "Source route",
+    "direct_to_coordinator": "Direct to coordinator"
   },
   "scene": {
     "manage_scenes_header": "Manage scenes",

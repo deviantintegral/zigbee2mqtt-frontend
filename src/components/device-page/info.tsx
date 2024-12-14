@@ -6,7 +6,7 @@ import DeviceControlGroup from '../device-control/DeviceControlGroup';
 import cx from 'classnames';
 import style from './style.module.css';
 import { connect } from 'unistore/react';
-import { AvailabilityState, GlobalState } from '../../store';
+import { AvailabilityState, Devices, GlobalState } from '../../store';
 import get from 'lodash/get';
 import { DeviceImage } from '../device-image/DeviceImage';
 import { ModelLink, VendorLink } from '../vendor-links/vendor-links';
@@ -23,7 +23,7 @@ import { DeviceControlUpdateDesc } from '../device-control/DeviceControlUpdateDe
 type DeviceInfoProps = {
     device: Device;
 };
-type PropsFromStore = Pick<GlobalState, 'deviceStates' | 'bridgeInfo' | 'availability'>;
+type PropsFromStore = Pick<GlobalState, 'devices' | 'deviceStates' | 'bridgeInfo' | 'availability'>;
 
 // [Flower sensor](https://modkam.ru/?p=1700)
 const markdownLinkRegex = /\[(.*?)]\((.*?)\)/;
@@ -31,13 +31,14 @@ const markdownLinkRegex = /\[(.*?)]\((.*?)\)/;
 // eslint-disable-next-line react/prefer-stateless-function
 export class DeviceInfo extends Component<
     Pick<DeviceApi, 'configureDevice' | 'renameDevice' | 'removeDevice' | 'setDeviceDescription' | 'interviewDevice'> &
+        Devices &
         DeviceInfoProps &
         PropsFromStore &
         WithTranslation<'zigbee'>,
     unknown
 > {
     render(): JSX.Element {
-        const { device, deviceStates, bridgeInfo, availability, t } = this.props;
+        const { device, deviceStates, bridgeInfo, availability, t, devices } = this.props;
         const { configureDevice, renameDevice, removeDevice, setDeviceDescription, interviewDevice } = this.props;
         const homeassistantEnabled = !!bridgeInfo.config?.homeassistant;
         const deviceState: DeviceState = deviceStates[device.friendly_name] ?? ({} as DeviceState);
@@ -178,6 +179,40 @@ export class DeviceInfo extends Component<
                 ),
             },
             {
+                key: 'source_route',
+                translationKey: 'source_route',
+                render: (
+                    device: Device,
+                    deviceStatus: DeviceState,
+                    bridgeInfo: BridgeInfo,
+                    availability: AvailabilityState,
+                    t: TFunction,
+                    devices: Devices,
+                ) => {
+                    return (
+                        <dd className="col-12 col-md-7">
+                            {deviceStatus.source_route instanceof Array && deviceStatus.source_route.length > 0
+                                ? deviceStatus.source_route
+                                      .map((addr: number) => {
+                                          const device = Object.values(devices).find((d) => d.network_address === addr);
+                                          if (device) {
+                                              return (
+                                                  <a href={`#device/${device.ieee_address}`}>{device.friendly_name}</a>
+                                              );
+                                          }
+                                          return <span>{toHex(addr, 4)}</span>;
+                                      })
+                                      .reduce((prev, curr) => (
+                                          <>
+                                              {prev} → {curr}
+                                          </>
+                                      ))
+                                : t('Direct to coordinator')}
+                        </dd>
+                    );
+                },
+            },
+            {
                 key: 'date_code',
                 translationKey: 'firmware_build_date',
                 if: 'date_code',
@@ -250,6 +285,7 @@ export class DeviceInfo extends Component<
                                         bridgeInfo,
                                         availability[device.friendly_name] ?? 'offline',
                                         t,
+                                        devices,
                                     )
                                 ) : (
                                     <dd className="col-12 col-md-7">{get(device, prop.key)}</dd>
@@ -268,7 +304,7 @@ export class DeviceInfo extends Component<
     }
 }
 
-const mappedProps = ['deviceStates', 'bridgeInfo', 'availability'];
+const mappedProps = ['deviceStates', 'bridgeInfo', 'availability', 'devices'];
 
 const ConnectedDeviceInfoPage = withTranslation('zigbee')(
     connect<DeviceInfoProps, unknown, GlobalState, PropsFromStore>(mappedProps, actions)(DeviceInfo),

@@ -271,6 +271,7 @@ export interface Device extends WithFriendlyName, WithDescription {
     ieee_address: IEEEEAddress;
     type: DeviceType;
     network_address: number;
+    source_route: number[];
     power_source?: PowerSource;
     model_id: string;
     manufacturer: string;
